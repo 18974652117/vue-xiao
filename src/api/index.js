@@ -16,8 +16,8 @@ export async function getUserLists (query = '', pagenum = 1, pagesize = 2) {
 }
 
 // 开关 状态的改变 users/:uId/state/:type    这个接口有问题
-export async function getSwitchState (uId, state, type) {
-  return await instance.put('/users', { uId, state, type })
+export async function getSwitchState (uId = 500, type = true) {
+  return await instance.put(`/users/uId=${uId}&type=${type}`)
 }
 
 // 添加用户请求 users

@@ -13,8 +13,9 @@
       <!-- 搜索与添加区域 -->
       <el-row :gutter="20">
         <el-col :span="8">
-          <el-input v-model="query" placeholder="请输入内容" clearable @clear="getUsers" >
-            <el-button slot="append"  @click="getUsers" icon="el-icon-search"></el-button>
+          <!-- clearable:清空文本框,点击清空重新发送请求 @clear -->
+          <el-input v-model="query" placeholder="请输入内容" clearable @clear="getUsers" @keyup.enter.native="enteQueryUserList">
+            <el-button slot="append"  @click="clickQueryUserList"  icon="el-icon-search"></el-button>
           </el-input>
         </el-col>
         <el-col :span="4">
@@ -29,9 +30,11 @@
         <el-table-column prop="email" label="邮箱"> </el-table-column>
         <el-table-column prop="mobile" label="电话"> </el-table-column>
         <el-table-column prop="role_name" label="角色"> </el-table-column>
-        <el-table-column prop="mg_state" label="状态">
+        <el-table-column label="状态">
           <!-- 作用域插槽 -->
           <template slot-scope="scope">
+            <!-- {{ scope.row }} 一行的数据  mg_state: 显示 false 和 true"-->
+            <!-- <el-switch v-model="scope.row.mg_state" @change="userStateChange(scope.row)"> </el-switch> -->
             <el-switch v-model="scope.row.mg_state" @change="userStateChange(scope.row)"> </el-switch>
           </template>
         </el-table-column>
@@ -49,22 +52,11 @@
         </el-table-column>
       </el-table>
 
-      <!-- 分页区 -->
-      <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pagenum"
-        :page-sizes="[1, 2, 5, 10]"
-        :page-size="pagesize"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="total">
-      </el-pagination>
-    </el-card>
-
-    <!-- 添加用户的对话框 -->
+    <!-- 添加用户的对话框                     @close：当dialog关闭是触发 -->
     <el-dialog title="添加用户" :visible.sync="addDialogVisible" width="30%"  @close="closeDialog">
       <!-- 内容  :model：数据绑定  rules：验证规则 ref：引用名称 -->
       <el-form :model="addForm" :rules="addForRules" ref="addForm" label-width="70px">
+        <!-- prop：验证规则的属性-->
         <el-form-item label="用户名" prop="username">
           <el-input v-model="addForm.username"></el-input>
         </el-form-item>
@@ -102,6 +94,18 @@
         <el-button type="primary" @click="editDUserInfo">确 定</el-button>
       </span>
     </el-dialog>
+
+      <!-- 分页区 -->
+      <el-pagination
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+        :current-page="pagenum"
+        :page-sizes="[1, 2, 5, 10]"
+        :page-size="pagesize"
+        layout="total, sizes, prev, pager, next, jumper"
+        :total="total">
+      </el-pagination>
+    </el-card>
   </div>
 </template>
 
@@ -141,7 +145,7 @@ export default {
       pagenum: 1, // 当前的页数 页码
       pagesize: 2, // 当前页码显示几条数据
 
-      userList: [], // 保存所有的用户列表，数据源
+      userList: [], // 保存所有的用户列表，数据源m
 
       addDialogVisible: false, // 控住对话框的显示和隐藏
 
@@ -188,10 +192,18 @@ export default {
     }
   },
   methods: {
+    /** 按回车查询 */
+    enteQueryUserList () {
+      this.getUsers()
+      console.log('11111')
+    },
+    /** 点击按钮查询 */
+    clickQueryUserList () {
+      this.getUsers()
+      console.log('333')
+    },
 
-    /**
-     *  获取用户列表
-     **/
+    /* 获取用户列表 */
     async getUsers () {
       const { data: res } = await getUserLists(this.query, this.pagenum, this.pagesize)
       // console.log(res);
@@ -204,33 +216,26 @@ export default {
       }
     },
 
-    /**
-     *  监听pagesizes 改变的事件
-     */
+    /* 监听pagesizes 改变的事件 */
     handleSizeChange (newSizes) {
       // console.log(newSizes);
       this.pagesize = newSizes
       this.getUsers()
     },
 
-    /**
-     *  监听页码值改变的事件
-     */
+    /* 监听页码值改变的事件, 可以拿到最新的页码值 */
     handleCurrentChange (newPage) {
-      // console.log(newPage);
       this.pagenum = newPage
       this.getUsers()
     },
 
-    /**
-     *  监听 开关状态
-     */
+    /* 监听 开关状态 的该改变 */
     async userStateChange (userInfo) {
-      // console.log(userInfo);
-      const { data: res } = await getSwitchState(userInfo.id, state, userInfo.mg_state)
-      // console.log(res);
+      console.log(userInfo);
+      const { data: res } = await getSwitchState(userInfo.id,  userInfo.mg_state)
+      console.log(res);
 
-      if (res.meta.status !== 200) {
+      if (res.meta.status === 200) {
         userInfo.mg_state = !userInfo.mg_state
         return this.$message.error('更新状态失败')
       } else {
@@ -241,40 +246,33 @@ export default {
       }
     },
 
-    /**
-      *   监听添加用户对话框的关闭   清空对话框  @ close 事件
-      */
+    /* 重置表单 监听 添加用户对话框的关闭    关闭添加对话框 清空输入框的内容 重置表单 @ close 事件 */
     closeDialog () {
       this.$refs.addForm.resetFields()
     },
 
-    /**
-     *  点击确定按钮 添加新用户 预校验
-     **/
+    /* 预校验表单  点击确定按钮 添加新用户  */
     addUsers () {
       this.$refs.addForm.validate(async valid => {
-        // console.log(valid);
-        if (!valid) {
-          return
-        }
+        // valid 验证失败之后直接 retue就不添加了 
+        if (!valid)   return 
         // 通过 发送添加用户的请求
         const { data: res } = await getAddUsers(this.addForm.username, this.addForm.password, this.addForm.email, this.addForm.mobile)
         console.log(res)
 
-        if (res.meta.status !== 201) {
+        if (res.meta.status === 201) {
+           this.$message.success('添加用户成功!')
+          // 隐藏添加 用户对话框
+          this.addDialogVisible = false
+          // 重新获取用户数据
+          this.getUsers()
+        }else{
           return this.$message.error('添加用户失败')
         }
-        this.$message.success('添加用户成功!')
-        // 隐藏添加 用户对话框
-        this.addDialogVisible = false
-        // 重新获取用户数据
-        this.getUsers()
       })
     },
 
-    /**
-     *  修改用户弹框, 展示编辑用户的对话框
-     **/
+    /* 修改用户弹框, 展示编辑用户的对话框 */
     async showEditDialog (id) {
       // console.log(id);
       const { data: res } = await getEditUser(id)
@@ -287,16 +285,12 @@ export default {
       this.editDialogVisible = true
     },
 
-    /**
-     * 监听修改用户 对话框的关闭事件
-     */
+    /* 监听修改用户 对话框的关闭事件 */
     editDialogClose () {
       this.$refs.editFormRef.resetFields()
     },
 
-    /**
-     *  修改用户信息并提交，预验证
-     */
+    /* 修改用户信息并提交，预验证 */
     editDUserInfo () {
       this.$refs.editFormRef.validate(async valid => {
         if (!valid) {
@@ -319,9 +313,7 @@ export default {
       })
     },
 
-    /**
-     *  删除用户，根据id删除
-     */
+    /*  删除用户，根据id删除 */
     async delUserById (id) {
       // 弹框提示删除
       const configResult = await this.$confirm('此操作将永久删除该用户, 是否继续?', '提示', {
