@@ -138,7 +138,6 @@ export default {
       }
       cb(new Error('请输入合法的手机号'))
     }
-
     return {
       query: '',
       total: 0, // 总数据列表条数
@@ -215,7 +214,6 @@ export default {
         this.total = res.data.total
       }
     },
-
     /* 监听pagesizes 改变的事件 */
     handleSizeChange (newSizes) {
       // console.log(newSizes);
